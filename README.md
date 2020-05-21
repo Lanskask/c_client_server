@@ -2,7 +2,8 @@
 
 Based on [tcp-server-client-implementation-in-c](https://www.geeksforgeeks.org/tcp-server-client-implementation-in-c/)  
 
-Data is read from *input_file.txt*
+Data is read from *input_file.txt*  
+
 Log is written to *message_log.txt*
 
 ## How to build
