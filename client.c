@@ -8,25 +8,27 @@
 #include <arpa/inet.h>
 
 #define MAX 80
-#define PORT 8080
+#define PORT 8081
 #define SA struct sockaddr
 
 char *read_file(char file_name[]) {
-    FILE *fp;
-    static char buff[255];
+    FILE *f = fopen("input_file.txt", "rb");
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    fseek(f, 0, SEEK_SET);  //same as rewind(f);
 
-    fp = fopen(file_name, "r");
-    fscanf(fp, "%s", buff);
-    return buff;
+    char *string = malloc(fsize + 1);
+    fread(string, fsize, 1, f);
+    fclose(f);
+
+    string[fsize] = 0;
+    return string;
 }
 
 void client_server_interaction(int sockfd) {
     char *buff = read_file("input_file.txt");
 
     write(sockfd, buff, sizeof(buff));
-    bzero(buff, sizeof(buff));
-    read(sockfd, buff, sizeof(buff));
-    printf("From Server : %s", buff);
 }
 
 int main() {
