@@ -1,5 +1,6 @@
 .idea/
 cmake-build-debug/
+build/
 
 for_tests.c
 for_tests_sig_handle.c

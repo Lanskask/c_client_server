@@ -39,7 +39,7 @@ void client_server_interaction(int sockfd) {
 }
 
 void handle_sigint(int sig, int socket) {
-    printf("The signal was: %d", sig);
+    printf("The signal was: %d\n", sig);
     close(socket);
     exit(sig);
 }
@@ -77,6 +77,7 @@ int main() {
 
 
     // signal handling
+    signal(SIGINT, handle_sigint);
     signal(SIGTERM, handle_sigint);
     signal(SIGHUP, handle_sigint);
 
