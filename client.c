@@ -28,7 +28,10 @@ char *read_file(char file_name[]) {
 void client_server_interaction(int sockfd) {
     char *buff = read_file("input_file.txt");
 
-    write(sockfd, buff, sizeof(buff));
+    if(write(sockfd, buff, sizeof(buff)) != sizeof(buff)) {
+        printf("send a different number of bytes than expected");
+        exit(EXIT_FAILURE);
+    };
 }
 
 int main() {

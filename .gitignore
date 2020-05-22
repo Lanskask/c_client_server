@@ -4,3 +4,8 @@ build/
 
 for_tests.c
 for_tests_sig_handle.c
+
+client2.c
+client3.c
+daemon_exp.c
+server2.c

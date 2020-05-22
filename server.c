@@ -12,41 +12,47 @@
 #define PORT 8081
 #define SA struct sockaddr
 
-void write_into_file(char msg[]) {
-    FILE *fp;
+static int loopCounter = 1;
 
-    fp = fopen("message_log.txt", "a");
-    fprintf(fp, msg);
-    fputs("\n", fp);
-    fclose(fp);
+void write_into_file(char msg[]);
+void client_server_interaction(int _sockfd);
+void handle_sigint(int sig);
+static void demonizing();
+
+/* Exit handler function called by sigaction */
+void exit_handler(int sig, siginfo_t *siginfo, void *ignore) {
+    printf("*** Got %d signal from %d\n", siginfo->si_signo, siginfo->si_pid);
+    loopCounter = 0;
+
+    return;
 }
 
-void client_server_interaction(int sockfd) {
-    char buff[MAX];
-    // infinite loop for chat
-//    for (;;) {
-    bzero(buff, MAX);
+void handling_signals_part() {
+    struct sigaction sig_action;
 
-    // read the message from client and copy it in buffer
-    read(sockfd, buff, sizeof(buff));
-    printf("Client message: %s\n\n", buff);
-    write_into_file(buff);
-    // print buffer which contains the client contents
-    bzero(buff, MAX);
+    sig_action.sa_flags = SA_SIGINFO;
+    sig_action.sa_sigaction = exit_handler;
 
-    // if msg contains "Exit" then server exit and chat ended.
-//    }
+    const int SIGNALS_TO_HOLD[] = {SIGINT, SIGTERM, SIGHUP, SIGCHLD};
+    for (int i = 0; i < sizeof(SIGNALS_TO_HOLD) / sizeof(SIGNALS_TO_HOLD[0]); ++i) {
+        sigaction(SIGNALS_TO_HOLD[i], &sig_action, 0);
+    }
+    signal(SIGTERM, handle_sigint);
 }
 
-void handle_sigint(int sig, int socket) {
-    printf("The signal was: %d\n", sig);
-    close(socket);
-    exit(sig);
+void handling_signals_part2() {
+    const int SIGNALS_TO_HOLD[] = {SIGINT, SIGTERM, SIGHUP, SIGCHLD};
+    for (int i = 0; i < sizeof(SIGNALS_TO_HOLD) / sizeof(SIGNALS_TO_HOLD[0]); ++i) {
+        signal(SIGNALS_TO_HOLD[i], handle_sigint);
+    }
 }
 
 int main() {
+//    demonizing();
+
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
+    size_t msg_len;
 
     // socket create and verification
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -75,26 +81,83 @@ int main() {
         printf("Server listening..\n");
     len = sizeof(cli);
 
-
-    // signal handling
-    signal(SIGINT, handle_sigint);
-    signal(SIGTERM, handle_sigint);
-    signal(SIGHUP, handle_sigint);
+    // ----------------------
+//    handling_signals_part();
+    handling_signals_part2();
 
     // Accept the data packet from client and verification
-    for(;;) {
+    while(loopCounter) {
+        printf(".");
         connfd = accept(sockfd, (SA *) &cli, &len);
         if (connfd < 0) {
-            printf("server acccept failed...\n");
+            printf("server accept failed...\n");
             break;
         } else
-            printf("server acccept the client...\n");
+            printf("server accept the client...\n");
 
         // Function for interaction between client and server
         client_server_interaction(connfd);
     }
 
-    // closing the socket
+    printf("closing the socket");
     close(sockfd);
     return 0;
+}
+
+void client_server_interaction(int _sockfd) {
+    char buff[MAX];
+    // infinite loop for chat
+    bzero(buff, MAX);
+
+    // read the message from client and copy it in buffer
+    read(_sockfd, buff, sizeof(buff));
+    printf("Client message: %s\n\n", buff);
+    write_into_file(buff);
+    // print buffer which contains the client contents
+    bzero(buff, MAX);
+}
+void write_into_file(char msg[]) {
+    FILE *fp;
+
+    fp = fopen("message_log.txt", "a");
+    fprintf(fp, msg);
+    fputs("\n", fp);
+    fclose(fp);
+}
+void handle_sigint(int sig) {
+    printf("The signal was: %d\n", sig);
+    loopCounter = 0;
+}
+static void demonizing() {
+    const int SIGNALS_TO_HOLD[] = {SIGINT, SIGTERM, SIGHUP, SIGCHLD};
+
+    pid_t pid;
+
+    //     Fork off the parent process
+    pid = fork();
+
+    //     An error occurred
+    if (pid < 0) exit(EXIT_FAILURE);
+    //     Success: Let the parent terminate
+    if (pid > 0) exit(EXIT_SUCCESS);
+    //     On success: The child process becomes session leader
+    if (setsid() < 0) exit(EXIT_FAILURE);
+
+    //    handle signals
+//    for (int i = 0; i < sizeof(SIGNALS_TO_HOLD) / sizeof(SIGNALS_TO_HOLD[0]); ++i) {
+//        int ans;
+//        ans = signal(SIGNALS_TO_HOLD[i], handle_sigint);
+//    }
+
+    //     Fork off for the second time
+    pid = fork();
+    //     An error occurred
+    if (pid < 0) exit(EXIT_FAILURE);
+    //     Success: Let the parent terminate
+    if (pid > 0) exit(EXIT_SUCCESS);
+
+    //     Close all open file descriptors
+    for (int x = sysconf(_SC_OPEN_MAX); x >= 0; x--) {
+        close(x);
+    }
 }

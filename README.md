@@ -39,3 +39,8 @@ nohup ./server &
 ## Notes
 - one client - read data from file - input_file.txt
 - on server - write message from client into file - message log
+
+## TODO:
+- read all file content - not just first line
+- demonize process
+- check demonizing
