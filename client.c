@@ -11,6 +11,7 @@
 #define PORT 8081
 #define SA struct sockaddr
 
+
 char *read_file(char file_name[]) {
     FILE *f = fopen("input_file.txt", "rb");
     fseek(f, 0, SEEK_END);
@@ -25,13 +26,29 @@ char *read_file(char file_name[]) {
     return string;
 }
 
-void client_server_interaction(int sockfd) {
-    char *buff = read_file("input_file.txt");
-
-    if(write(sockfd, buff, sizeof(buff)) != sizeof(buff)) {
+void write_text(int socket_fd, const char *text) {
+    /* Write the number of bytes in the string, including
+    NUL-termination. */
+    int length = strlen(text) + 1;
+    //     Write the length
+    if (write(socket_fd, &length, sizeof(length)) != sizeof(length)) {
         printf("send a different number of bytes than expected");
         exit(EXIT_FAILURE);
     };
+
+    //     Write the message
+    if (write(socket_fd, text, length)  != length) {
+        printf("send a different number of bytes than expected");
+        exit(EXIT_FAILURE);
+    };
+}
+
+
+void client_server_interaction(int sockfd) {
+    char *buff = read_file("input_file.txt");
+
+    write_text(sockfd, buff);
+    free(buff);
 }
 
 int main() {

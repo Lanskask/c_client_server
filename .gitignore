@@ -9,3 +9,4 @@ client2.c
 client3.c
 daemon_exp.c
 server2.c
+fread_exp.c

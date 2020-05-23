@@ -6,7 +6,9 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include<signal.h>
+#include <signal.h>
+#include <sys/ioctl.h>
+#include <poll.h>
 
 #define MAX 80
 #define PORT 8081
@@ -15,36 +17,92 @@
 static int loopCounter = 1;
 
 void write_into_file(char msg[]);
-void client_server_interaction(int _sockfd);
+
+
 void handle_sigint(int sig);
+
 static void demonizing();
 
-/* Exit handler function called by sigaction */
-void exit_handler(int sig, siginfo_t *siginfo, void *ignore) {
-    printf("*** Got %d signal from %d\n", siginfo->si_signo, siginfo->si_pid);
-    loopCounter = 0;
+void handling_signals_part();
 
-    return;
+
+char *read_from_socket(int sock) {
+    char *buffer = malloc(1024);
+    int len = 0;
+    ioctl(sock, FIONREAD, &len);
+    if (len > 0) {
+        len = read(sock, buffer, len);
+    }
+    return buffer;
 }
 
-void handling_signals_part() {
-    struct sigaction sig_action;
+char *read_from_socket2(int sock) {
+    char buffer[1024];
+    int ptr = 0;
+    ssize_t rc;
 
-    sig_action.sa_flags = SA_SIGINFO;
-    sig_action.sa_sigaction = exit_handler;
+    struct pollfd fd = {
+            .fd = sock,
+            .events = POLLIN
+    };
 
-    const int SIGNALS_TO_HOLD[] = {SIGINT, SIGTERM, SIGHUP, SIGCHLD};
-    for (int i = 0; i < sizeof(SIGNALS_TO_HOLD) / sizeof(SIGNALS_TO_HOLD[0]); ++i) {
-        sigaction(SIGNALS_TO_HOLD[i], &sig_action, 0);
+    poll(&fd, 1, 0); // Doesn't wait for data to arrive.
+    while (fd.revents & POLLIN) {
+        rc = read(sock, buffer + ptr, sizeof(buffer) - ptr);
+
+        if (rc <= 0)
+            break;
+
+        ptr += rc;
+        poll(&fd, 1, 0);
     }
-    signal(SIGTERM, handle_sigint);
+
+    printf("Read %d bytes from sock.\n", ptr);
 }
 
-void handling_signals_part2() {
-    const int SIGNALS_TO_HOLD[] = {SIGINT, SIGTERM, SIGHUP, SIGCHLD};
-    for (int i = 0; i < sizeof(SIGNALS_TO_HOLD) / sizeof(SIGNALS_TO_HOLD[0]); ++i) {
-        signal(SIGNALS_TO_HOLD[i], handle_sigint);
-    }
+char *read_from_socket3(int client_socket) {
+    //     Read text from the socket and print it out. Continue until the socket closes.
+    int length;
+    char *text;
+    //First, read the length of the text message from the socket. If read returns zero, the client closed the connection.
+    if (read(client_socket, &length, sizeof(length)) == 0)
+        return 0;
+     // Allocate a buffer to hold the text.
+    text = (char *) malloc(length);
+    //Read the text itself, and print it.
+    read(client_socket, text, length);
+    printf("%s\n", text);
+    // Free the buffer.
+    return text;
+}
+
+char *read_from_socket0(int _sockfd) {
+    char buff[MAX];
+    bzero(buff, MAX);
+    if (read(_sockfd, buff, sizeof(buff)) != sizeof(buff)) {
+        printf("read a different number of bytes than expected");
+        exit(EXIT_FAILURE);
+    };
+
+    return buff;
+}
+
+
+void client_server_interaction(const int *_sockfd) {
+    char buff[MAX];
+    bzero(buff, MAX);
+    read(_sockfd, buff, sizeof(buff));
+
+    // read the message from client and copy it in buffer
+//    char * buff = read_from_socket(_sockfd);
+//    char *buff = read_from_socket2(_sockfd);
+//    char *buff = read_from_socket2(_sockfd);
+//    char *buff = read_by_fd(_sockfd);
+    printf("Client message: %s\n\n", buff);
+
+    write_into_file(buff);
+    // print buffer which contains the client contents
+    bzero(buff, MAX);
 }
 
 int main() {
@@ -82,12 +140,14 @@ int main() {
     len = sizeof(cli);
 
     // ----------------------
-//    handling_signals_part();
-    handling_signals_part2();
+    handling_signals_part();
+
+
+    char buff[MAX];
+    int n;
 
     // Accept the data packet from client and verification
-    while(loopCounter) {
-        printf(".");
+    while (loopCounter) {
         connfd = accept(sockfd, (SA *) &cli, &len);
         if (connfd < 0) {
             printf("server accept failed...\n");
@@ -104,30 +164,6 @@ int main() {
     return 0;
 }
 
-void client_server_interaction(int _sockfd) {
-    char buff[MAX];
-    // infinite loop for chat
-    bzero(buff, MAX);
-
-    // read the message from client and copy it in buffer
-    read(_sockfd, buff, sizeof(buff));
-    printf("Client message: %s\n\n", buff);
-    write_into_file(buff);
-    // print buffer which contains the client contents
-    bzero(buff, MAX);
-}
-void write_into_file(char msg[]) {
-    FILE *fp;
-
-    fp = fopen("message_log.txt", "a");
-    fprintf(fp, msg);
-    fputs("\n", fp);
-    fclose(fp);
-}
-void handle_sigint(int sig) {
-    printf("The signal was: %d\n", sig);
-    loopCounter = 0;
-}
 static void demonizing() {
     const int SIGNALS_TO_HOLD[] = {SIGINT, SIGTERM, SIGHUP, SIGCHLD};
 
@@ -160,4 +196,26 @@ static void demonizing() {
     for (int x = sysconf(_SC_OPEN_MAX); x >= 0; x--) {
         close(x);
     }
+}
+
+
+void handle_sigint(int sig) {
+    printf("The signal was: %d\n", sig);
+    loopCounter = 0;
+}
+
+void handling_signals_part() {
+    const int SIGNALS_TO_HOLD[] = {SIGINT, SIGTERM, SIGHUP, SIGCHLD};
+    for (int i = 0; i < sizeof(SIGNALS_TO_HOLD) / sizeof(SIGNALS_TO_HOLD[0]); ++i) {
+        signal(SIGNALS_TO_HOLD[i], handle_sigint);
+    }
+}
+
+void write_into_file(char msg[]) {
+    FILE *fp;
+
+    fp = fopen("message_log.txt", "a");
+    fprintf(fp, msg);
+    fputs("\n", fp);
+    fclose(fp);
 }
