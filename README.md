@@ -15,25 +15,8 @@ cd build
 cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release
 cmake --build .
 
-nohup ./server &
-./client
-```
-
-Or int run
-```shell script
-sh run.sh
-```
-
-## How to use 
-
-- to run server
-```shell script
-nohup ./server &
-```
-
-- to run client
-```shell script
-./client
+./server
+./client "input_file.txt"
 ```
 
 # How to generate big file
@@ -45,7 +28,6 @@ hello world
 for i in {1..15}; do cat file.txt file.txt > file2.txt && mv file2.txt file.txt; done
 ```
 
-
 ## Notes
 - one client - read data from file - input_file.txt
 - on server - write message from client into file - message log
@@ -54,6 +36,10 @@ for i in {1..15}; do cat file.txt file.txt > file2.txt && mv file2.txt file.txt;
 - [x] ~~read all file content - not just first line~~
 - [x] ~~demonize process~~
 - [x] ~~check demonizing~~
-- [ ] upscrew (turn on) demonizing 
-- [ ] ~~try to send very big file - with size near 1 ml bytes~~
+- [x] ~~try to send very big file - with size near 1 ml bytes~~
 - [x] ~~serverc 63 не засовывается из text в buff~~
+- [x] ~~add support for client argv[] - input file name~~  
+- [x] ~~upscrew (turn on) demonizing~~
+- [ ] signal handling stops only on the second client call - how to fix it? 
+\- think that change position on signal handling part
+

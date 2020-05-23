@@ -16,7 +16,7 @@
 #define TCP_PACKET_MAX_SIZE 65536
 
 char *read_file(char file_name[]) {
-    FILE *f = fopen(INPUT_FILE_NAME, "rb");
+    FILE *f = fopen(file_name, "rb");
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);  //same as rewind(f);
@@ -36,7 +36,7 @@ void process_packet_length(int socket_fd, int length) {
     };
 }
 
-void process_packet(int socket_fd, char*text, size_t length ) {
+void process_packet(int socket_fd, const char *text, size_t length) {
     if (write(socket_fd, text, length) != length) {
         printf("send a different number of bytes than expected");
         exit(EXIT_FAILURE);
@@ -50,7 +50,7 @@ void write_text(int socket_fd, const char *text) {
     process_packet_length(socket_fd, length);
 
     //     Write the message
-    if(strlen(text) < TCP_PACKET_MAX_SIZE) { // if file text size < max tcp packet size
+    if (strlen(text) < TCP_PACKET_MAX_SIZE) { // if file text size < max tcp packet size
         process_packet(socket_fd, text, length);
     } else {
         size_t num_of_packets = length / TCP_PACKET_MAX_SIZE + 1;
@@ -61,14 +61,14 @@ void write_text(int socket_fd, const char *text) {
                 char packet[TCP_PACKET_MAX_SIZE];
                 bzero(packet, TCP_PACKET_MAX_SIZE);
                 // copy part of main array
-                memcpy(packet, text+(i * TCP_PACKET_MAX_SIZE), TCP_PACKET_MAX_SIZE*sizeof(char));
+                memcpy(packet, text + (i * TCP_PACKET_MAX_SIZE), TCP_PACKET_MAX_SIZE * sizeof(char));
 
                 process_packet(socket_fd, packet, TCP_PACKET_MAX_SIZE);
             } else { // if the last packet
                 char packet[last_pack_size];
                 bzero(packet, last_pack_size);
                 // copy part of main array
-                memcpy(packet, text+(i * TCP_PACKET_MAX_SIZE), last_pack_size*sizeof(char));
+                memcpy(packet, text + (i * TCP_PACKET_MAX_SIZE), last_pack_size * sizeof(char));
 
                 process_packet(socket_fd, packet, last_pack_size);
             }
@@ -76,15 +76,27 @@ void write_text(int socket_fd, const char *text) {
     }
 }
 
-
-void client_server_interaction(int sockfd) {
-    char *buff = read_file("input_file_little.txt");
+void client_server_interaction(int sockfd, char *input_file_name) {
+    char *buff = read_file(input_file_name);
 
     write_text(sockfd, buff);
     free(buff);
 }
 
-int main() {
+void handle_input(int argc, char *argv[], char **input_file_name) {
+    if (argc < 2) {
+        fprintf(stderr, "You forget to set input_file_name");
+        exit(EXIT_FAILURE);
+    } else {
+        *input_file_name = argv[1];
+    }
+}
+
+int main(int argc, char *argv[]) {
+    // setting input file name
+    char *input_file_name = NULL;
+    handle_input(argc, argv, &input_file_name);
+
     int sockfd, connfd;
     struct sockaddr_in servaddr, cli;
 
@@ -110,7 +122,7 @@ int main() {
         printf("connected to the server..\n");
 
     // function for chat
-    client_server_interaction(sockfd);
+    client_server_interaction(sockfd, input_file_name);
 
     // close the socket
     close(sockfd);

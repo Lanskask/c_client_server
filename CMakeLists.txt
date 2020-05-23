@@ -10,7 +10,8 @@ configure_file(${INPUT_FILE_NAME} ${CMAKE_CURRENT_BINARY_DIR}/${INPUT_FILE_NAME}
 add_executable(server server.c)
 add_executable(client client.c)
 
-add_executable(fread_exp fread_exp.c)
-add_executable(array_exp array_exp.c)
+#add_executable(fread_exp fread_exp.c)
+#add_executable(array_exp array_exp.c)
+#add_executable(argc_exp argc_exp.c)
 
-#add_executable(daemon_exp daemon_exp.c)
+add_executable(daemon_exp daemon_exp.c)

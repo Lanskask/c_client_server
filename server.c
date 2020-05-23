@@ -14,11 +14,13 @@
 #define PORT 8082
 #define SA struct sockaddr
 #define TCP_PACKET_MAX_SIZE 65536
+#define MESSAGE_LOG "message_log.txt"
+#define SERVER_LOG "server_log.log"
 
 
 static int loopCounter = 1;
 
-void write_into_file(char msg[]);
+void write_into_file(char msg[], char *file_name);
 
 void handle_sigint(int sig);
 
@@ -31,10 +33,10 @@ void process_packet_read(int client_socket, char *text, size_t length) {
     if (readed != length) {
         printf("read wrong number on bytes. Read: %s; Need %s", readed, length);
     };
-//    printf("strlen(text): %s\n", strlen(text));
 }
 
 void client_server_interaction(const int client_socket) {
+    printf("client_server_interaction\n");
     int length;
     // read the length of the text from the socket. If read returns zero, the client closed the connection.
     if (read(client_socket, &length, sizeof(length)) == 0) {
@@ -74,13 +76,12 @@ void client_server_interaction(const int client_socket) {
 //        return result;
     } // end of - if file text size < max tcp packet size
 
-    write_into_file(buff);
+    write_into_file(buff, MESSAGE_LOG);
     free(buff);
 }
 
 int main() {
 //    demonizing();
-
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
     size_t msg_len;
@@ -112,7 +113,6 @@ int main() {
         printf("Server listening..\n");
     len = sizeof(cli);
 
-    // ----------------------
     handling_signals_part();
 
     // Accept the data packet from client and verification
@@ -140,9 +140,11 @@ static void demonizing() {
 
     //     Fork off the parent process
     pid = fork();
-
     //     An error occurred
-    if (pid < 0) exit(EXIT_FAILURE);
+    if (pid < 0) {
+        write_into_file("An error occurred on creating fork", SERVER_LOG);
+        exit(EXIT_FAILURE);
+    }
     //     Success: Let the parent terminate
     if (pid > 0) exit(EXIT_SUCCESS);
     //     On success: The child process becomes session leader
@@ -153,6 +155,7 @@ static void demonizing() {
 //        int ans;
 //        ans = signal(SIGNALS_TO_HOLD[i], handle_sigint);
 //    }
+//    handling_signals_part();
 
     //     Fork off for the second time
     pid = fork();
@@ -180,10 +183,10 @@ void handling_signals_part() {
     }
 }
 
-void write_into_file(char *msg) {
+void write_into_file(char *msg, char*file_name) {
     FILE *fp;
 
-    fp = fopen("message_log.txt", "a");
+    fp = fopen(file_name, "a");
     fprintf(fp, msg);
     fclose(fp);
 }
