@@ -20,7 +20,6 @@ static int loopCounter = 1;
 
 void write_into_file(char msg[]);
 
-
 void handle_sigint(int sig);
 
 static void demonizing();
@@ -44,7 +43,7 @@ void client_server_interaction(const int client_socket) {
     }
 
     // alocate memory for all text
-    char *buff = malloc( sizeof(*buff) * ( length + 1 ) );
+    char *buff = malloc(sizeof(*buff) * (length + 1));
 
     if (length < TCP_PACKET_MAX_SIZE) { // if file text size < max tcp packet size
         process_packet_read(client_socket, buff, length);
@@ -56,19 +55,19 @@ void client_server_interaction(const int client_socket) {
             if (i != num_of_packets - 1) { // if not the last packet
 //                char packet[TCP_PACKET_MAX_SIZE];
 //                bzero(packet, TCP_PACKET_MAX_SIZE);
-                char *text = malloc( sizeof(*text) * ( TCP_PACKET_MAX_SIZE + 1 ) );
+                char *text = malloc(sizeof(*text) * (TCP_PACKET_MAX_SIZE + 1));
 
                 process_packet_read(client_socket, text, TCP_PACKET_MAX_SIZE);
 
-                memcpy(buff+(i * TCP_PACKET_MAX_SIZE), text, TCP_PACKET_MAX_SIZE*sizeof(char));
+                memcpy(buff + (i * TCP_PACKET_MAX_SIZE), text, TCP_PACKET_MAX_SIZE * sizeof(char));
                 free(text);
             } else { // if the last packet
 //                char packet[last_pack_size];
 //                bzero(packet, last_pack_size);
-                char *text = malloc( sizeof(*text) * ( last_pack_size + 1 ) );
+                char *text = malloc(sizeof(*text) * (last_pack_size + 1));
 
                 process_packet_read(client_socket, text, last_pack_size);
-                memcpy(buff+(i * TCP_PACKET_MAX_SIZE), text, last_pack_size*sizeof(char));
+                memcpy(buff + (i * TCP_PACKET_MAX_SIZE), text, last_pack_size * sizeof(char));
                 free(text);
             }
         }
@@ -186,6 +185,5 @@ void write_into_file(char *msg) {
 
     fp = fopen("message_log.txt", "a");
     fprintf(fp, msg);
-    fputs("\n", fp);
     fclose(fp);
 }

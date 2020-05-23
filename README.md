@@ -55,5 +55,5 @@ for i in {1..15}; do cat file.txt file.txt > file2.txt && mv file2.txt file.txt;
 - [x] ~~demonize process~~
 - [x] ~~check demonizing~~
 - [ ] upscrew (turn on) demonizing 
-- [ ] try to send very big file - with size near 1 mln bytes
-- `serverc:63` не засовывается из text в buff
+- [ ] ~~try to send very big file - with size near 1 ml bytes~~
+- [x] ~~serverc 63 не засовывается из text в buff~~
