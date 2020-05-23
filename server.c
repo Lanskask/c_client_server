@@ -27,46 +27,53 @@ static void demonizing();
 
 void handling_signals_part();
 
-char *read_from_socket(int client_socket) {
-    //     Read text from the socket and print it out. Continue until the socket closes.
-    int length;
-    char *text;
-    //First, read the length of the text message from the socket. If read returns zero, the client closed the connection.
-    if (read(client_socket, &length, sizeof(length)) == 0) {
-        printf("packet size is zero");
-        return 0;
-    }
-
-    // Allocate a buffer to hold the text.
-    text = (char *) malloc(length);
-    //Read the text itself, and print it.
+void process_packet_read(int client_socket, char *text, size_t length) {
     size_t readed = read(client_socket, text, length);
-    if(readed != length) {
+    if (readed != length) {
         printf("read wrong number on bytes. Read: %s; Need %s", readed, length);
     };
-    printf("strlen(text): %s\n", strlen(text));
-    return text;
+//    printf("strlen(text): %s\n", strlen(text));
 }
 
-void client_server_interaction0(const int _sockfd) {
-    char buff[MAX];
-    bzero(buff, MAX);
-    read(_sockfd, buff, sizeof(buff));
+void client_server_interaction(const int client_socket) {
+    int length;
+    // read the length of the text from the socket. If read returns zero, the client closed the connection.
+    if (read(client_socket, &length, sizeof(length)) == 0) {
+        printf("packet size is zero - client closed the connection");
+        exit(EXIT_SUCCESS);
+    }
 
-    // read the message from client and copy it in buffer
-//    char * buff = read_from_socket(_sockfd);
-//    char *buff = read_from_socket2(_sockfd);
-//    char *buff = read_from_socket2(_sockfd);
-//    char *buff = read_by_fd(_sockfd);
-    printf("Client message: %s\n\n", buff);
+    // alocate memory for all text
+    char *buff = malloc( sizeof(*buff) * ( length + 1 ) );
 
-    write_into_file(buff);
-    // print buffer which contains the client contents
-    bzero(buff, MAX);
-}
+    if (length < TCP_PACKET_MAX_SIZE) { // if file text size < max tcp packet size
+        process_packet_read(client_socket, buff, length);
+    } else {
+        size_t num_of_packets = length / TCP_PACKET_MAX_SIZE + 1;
+        size_t last_pack_size = length - TCP_PACKET_MAX_SIZE * (num_of_packets - 1);
 
-void client_server_interaction(const int _sockfd) {
-    char *buff = read_from_socket(_sockfd);
+        for (int i = 0; i < num_of_packets; ++i) {
+            if (i != num_of_packets - 1) { // if not the last packet
+//                char packet[TCP_PACKET_MAX_SIZE];
+//                bzero(packet, TCP_PACKET_MAX_SIZE);
+                char *text = malloc( sizeof(*text) * ( TCP_PACKET_MAX_SIZE + 1 ) );
+
+                process_packet_read(client_socket, text, TCP_PACKET_MAX_SIZE);
+
+                memcpy(buff+(i * TCP_PACKET_MAX_SIZE), text, TCP_PACKET_MAX_SIZE*sizeof(char));
+                free(text);
+            } else { // if the last packet
+//                char packet[last_pack_size];
+//                bzero(packet, last_pack_size);
+                char *text = malloc( sizeof(*text) * ( last_pack_size + 1 ) );
+
+                process_packet_read(client_socket, text, last_pack_size);
+                memcpy(buff+(i * TCP_PACKET_MAX_SIZE), text, last_pack_size*sizeof(char));
+                free(text);
+            }
+        }
+//        return result;
+    } // end of - if file text size < max tcp packet size
 
     write_into_file(buff);
     free(buff);
@@ -174,7 +181,7 @@ void handling_signals_part() {
     }
 }
 
-void write_into_file(char msg[]) {
+void write_into_file(char *msg) {
     FILE *fp;
 
     fp = fopen("message_log.txt", "a");
