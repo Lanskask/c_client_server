@@ -8,12 +8,14 @@
 #include <arpa/inet.h>
 
 #define MAX 80
-#define PORT 8081
+#define PORT 8082
 #define SA struct sockaddr
-
+//"input_file_little.txt"
+#define INPUT_FILE_NAME "input_file.txt"
+#define TCP_PACKET_MAX_SIZE 65536
 
 char *read_file(char file_name[]) {
-    FILE *f = fopen("input_file.txt", "rb");
+    FILE *f = fopen(INPUT_FILE_NAME, "rb");
     fseek(f, 0, SEEK_END);
     long fsize = ftell(f);
     fseek(f, 0, SEEK_SET);  //same as rewind(f);
@@ -26,26 +28,56 @@ char *read_file(char file_name[]) {
     return string;
 }
 
-void write_text(int socket_fd, const char *text) {
-    /* Write the number of bytes in the string, including
-    NUL-termination. */
-    int length = strlen(text) + 1;
-    //     Write the length
+void process_packet_length(int socket_fd, int length) {
     if (write(socket_fd, &length, sizeof(length)) != sizeof(length)) {
-        printf("send a different number of bytes than expected");
-        exit(EXIT_FAILURE);
-    };
-
-    //     Write the message
-    if (write(socket_fd, text, length)  != length) {
         printf("send a different number of bytes than expected");
         exit(EXIT_FAILURE);
     };
 }
 
+void process_packet(int socket_fd, char*text, size_t length ) {
+    if (write(socket_fd, text, length) != length) {
+        printf("send a different number of bytes than expected");
+        exit(EXIT_FAILURE);
+    };
+}
+
+void write_text(int socket_fd, const char *text) {
+    //     Write the number of bytes in the string, including NUL-termination.
+    int length = strlen(text) + 1;
+    //     Write the length
+    process_packet_length(socket_fd, length);
+
+    //     Write the message
+    if(strlen(text) < TCP_PACKET_MAX_SIZE) { // if file text size < max tcp packet size
+        process_packet(socket_fd, text, length);
+    } else {
+        size_t num_of_packets = length / TCP_PACKET_MAX_SIZE + 1;
+        size_t last_pack_size = length - TCP_PACKET_MAX_SIZE * (num_of_packets - 1);
+
+        for (int i = 0; i < num_of_packets; ++i) {
+            if (i != num_of_packets - 1) { // if not the last packet
+                char packet[TCP_PACKET_MAX_SIZE];
+                bzero(packet, TCP_PACKET_MAX_SIZE);
+                // copy part of main array
+                memcpy(packet, text+(i * TCP_PACKET_MAX_SIZE), TCP_PACKET_MAX_SIZE*sizeof(char));
+
+                process_packet(socket_fd, packet, TCP_PACKET_MAX_SIZE);
+            } else { // if the last packet
+                char packet[last_pack_size];
+                bzero(packet, last_pack_size);
+                // copy part of main array
+                memcpy(packet, text+(i * TCP_PACKET_MAX_SIZE), last_pack_size*sizeof(char));
+
+                process_packet(socket_fd, packet, last_pack_size);
+            }
+        }
+    }
+}
+
 
 void client_server_interaction(int sockfd) {
-    char *buff = read_file("input_file.txt");
+    char *buff = read_file("input_file_little.txt");
 
     write_text(sockfd, buff);
     free(buff);

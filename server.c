@@ -11,8 +11,10 @@
 #include <poll.h>
 
 #define MAX 80
-#define PORT 8081
+#define PORT 8082
 #define SA struct sockaddr
+#define TCP_PACKET_MAX_SIZE 65536
+
 
 static int loopCounter = 1;
 
@@ -25,70 +27,26 @@ static void demonizing();
 
 void handling_signals_part();
 
-
-char *read_from_socket(int sock) {
-    char *buffer = malloc(1024);
-    int len = 0;
-    ioctl(sock, FIONREAD, &len);
-    if (len > 0) {
-        len = read(sock, buffer, len);
-    }
-    return buffer;
-}
-
-char *read_from_socket0(int _sockfd) {
-    char *buff = malloc(MAX * sizeof(char));
-
-    if (read(_sockfd, buff, sizeof(buff)) != sizeof(buff)) {
-        printf("read a different number of bytes than expected");
-        exit(EXIT_FAILURE);
-    };
-
-    printf("Client message: %s\n\n", buff);
-
-    return buff;
-}
-
-char *read_from_socket2(int sock) {
-    char buffer[1024];
-    int ptr = 0;
-    ssize_t rc;
-
-    struct pollfd fd = {
-            .fd = sock,
-            .events = POLLIN
-    };
-
-    poll(&fd, 1, 0); // Doesn't wait for data to arrive.
-    while (fd.revents & POLLIN) {
-        rc = read(sock, buffer + ptr, sizeof(buffer) - ptr);
-
-        if (rc <= 0)
-            break;
-
-        ptr += rc;
-        poll(&fd, 1, 0);
-    }
-
-    printf("Read %d bytes from sock.\n", ptr);
-}
-
-char *read_from_socket3(int client_socket) {
+char *read_from_socket(int client_socket) {
     //     Read text from the socket and print it out. Continue until the socket closes.
     int length;
     char *text;
     //First, read the length of the text message from the socket. If read returns zero, the client closed the connection.
-    if (read(client_socket, &length, sizeof(length)) == 0)
+    if (read(client_socket, &length, sizeof(length)) == 0) {
+        printf("packet size is zero");
         return 0;
+    }
+
     // Allocate a buffer to hold the text.
     text = (char *) malloc(length);
     //Read the text itself, and print it.
-    read(client_socket, text, length);
-    printf("%s\n", text);
-    // Free the buffer.
+    size_t readed = read(client_socket, text, length);
+    if(readed != length) {
+        printf("read wrong number on bytes. Read: %s; Need %s", readed, length);
+    };
+    printf("strlen(text): %s\n", strlen(text));
     return text;
 }
-
 
 void client_server_interaction0(const int _sockfd) {
     char buff[MAX];
@@ -108,8 +66,7 @@ void client_server_interaction0(const int _sockfd) {
 }
 
 void client_server_interaction(const int _sockfd) {
-//    char *buff = read_from_socket0(_sockfd);
-    char *buff = read_from_socket3(_sockfd);
+    char *buff = read_from_socket(_sockfd);
 
     write_into_file(buff);
     free(buff);

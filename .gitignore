@@ -10,3 +10,7 @@ client3.c
 daemon_exp.c
 server2.c
 fread_exp.c
+array_exp.c
+
+input_file_little.txt
+

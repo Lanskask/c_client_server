@@ -36,11 +36,23 @@ nohup ./server &
 ./client
 ```
 
+# How to generate big file
+Content of *file.txt*
+```shell script
+hello world
+```
+```shell script
+for i in {1..15}; do cat file.txt file.txt > file2.txt && mv file2.txt file.txt; done
+```
+
+
 ## Notes
 - one client - read data from file - input_file.txt
 - on server - write message from client into file - message log
 
 ## TODO:
-- read all file content - not just first line
-- demonize process
-- check demonizing
+- [x] ~~read all file content - not just first line~~
+- [x] ~~demonize process~~
+- [x] ~~check demonizing~~
+- [ ] upscrew (turn on) demonizing 
+- [ ] try to send very big file - with size near 1 mln bytes
