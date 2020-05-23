@@ -36,6 +36,19 @@ char *read_from_socket(int sock) {
     return buffer;
 }
 
+char *read_from_socket0(int _sockfd) {
+    char *buff = malloc(MAX * sizeof(char));
+
+    if (read(_sockfd, buff, sizeof(buff)) != sizeof(buff)) {
+        printf("read a different number of bytes than expected");
+        exit(EXIT_FAILURE);
+    };
+
+    printf("Client message: %s\n\n", buff);
+
+    return buff;
+}
+
 char *read_from_socket2(int sock) {
     char buffer[1024];
     int ptr = 0;
@@ -67,7 +80,7 @@ char *read_from_socket3(int client_socket) {
     //First, read the length of the text message from the socket. If read returns zero, the client closed the connection.
     if (read(client_socket, &length, sizeof(length)) == 0)
         return 0;
-     // Allocate a buffer to hold the text.
+    // Allocate a buffer to hold the text.
     text = (char *) malloc(length);
     //Read the text itself, and print it.
     read(client_socket, text, length);
@@ -76,19 +89,8 @@ char *read_from_socket3(int client_socket) {
     return text;
 }
 
-char *read_from_socket0(int _sockfd) {
-    char buff[MAX];
-    bzero(buff, MAX);
-    if (read(_sockfd, buff, sizeof(buff)) != sizeof(buff)) {
-        printf("read a different number of bytes than expected");
-        exit(EXIT_FAILURE);
-    };
 
-    return buff;
-}
-
-
-void client_server_interaction(const int *_sockfd) {
+void client_server_interaction0(const int _sockfd) {
     char buff[MAX];
     bzero(buff, MAX);
     read(_sockfd, buff, sizeof(buff));
@@ -103,6 +105,14 @@ void client_server_interaction(const int *_sockfd) {
     write_into_file(buff);
     // print buffer which contains the client contents
     bzero(buff, MAX);
+}
+
+void client_server_interaction(const int _sockfd) {
+//    char *buff = read_from_socket0(_sockfd);
+    char *buff = read_from_socket3(_sockfd);
+
+    write_into_file(buff);
+    free(buff);
 }
 
 int main() {
@@ -141,10 +151,6 @@ int main() {
 
     // ----------------------
     handling_signals_part();
-
-
-    char buff[MAX];
-    int n;
 
     // Accept the data packet from client and verification
     while (loopCounter) {
