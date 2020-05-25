@@ -7,12 +7,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#define MAX 80
 #define PORT 8082
 #define SA struct sockaddr
-//"input_file_little.txt"
-#define INPUT_FILE_NAME "input_file.txt"
-//#define INPUT_FILE_NAME "input_file_little.txt"
 #define TCP_PACKET_MAX_SIZE 65536
 
 char *read_file(char file_name[]) {

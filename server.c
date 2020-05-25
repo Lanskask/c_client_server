@@ -55,8 +55,6 @@ void client_server_interaction(const int client_socket) {
 
         for (int i = 0; i < num_of_packets; ++i) {
             if (i != num_of_packets - 1) { // if not the last packet
-//                char packet[TCP_PACKET_MAX_SIZE];
-//                bzero(packet, TCP_PACKET_MAX_SIZE);
                 char *text = malloc(sizeof(*text) * (TCP_PACKET_MAX_SIZE + 1));
 
                 process_packet_read(client_socket, text, TCP_PACKET_MAX_SIZE);
@@ -64,8 +62,6 @@ void client_server_interaction(const int client_socket) {
                 memcpy(buff + (i * TCP_PACKET_MAX_SIZE), text, TCP_PACKET_MAX_SIZE * sizeof(char));
                 free(text);
             } else { // if the last packet
-//                char packet[last_pack_size];
-//                bzero(packet, last_pack_size);
                 char *text = malloc(sizeof(*text) * (last_pack_size + 1));
 
                 process_packet_read(client_socket, text, last_pack_size);
@@ -73,7 +69,6 @@ void client_server_interaction(const int client_socket) {
                 free(text);
             }
         }
-//        return result;
     } // end of - if file text size < max tcp packet size
 
     write_into_file(buff, MESSAGE_LOG);
@@ -81,7 +76,8 @@ void client_server_interaction(const int client_socket) {
 }
 
 int main() {
-//    demonizing();
+    demonizing();
+
     int sockfd, connfd, len;
     struct sockaddr_in servaddr, cli;
     size_t msg_len;
@@ -149,13 +145,6 @@ static void demonizing() {
     if (pid > 0) exit(EXIT_SUCCESS);
     //     On success: The child process becomes session leader
     if (setsid() < 0) exit(EXIT_FAILURE);
-
-    //    handle signals
-//    for (int i = 0; i < sizeof(SIGNALS_TO_HOLD) / sizeof(SIGNALS_TO_HOLD[0]); ++i) {
-//        int ans;
-//        ans = signal(SIGNALS_TO_HOLD[i], handle_sigint);
-//    }
-//    handling_signals_part();
 
     //     Fork off for the second time
     pid = fork();
